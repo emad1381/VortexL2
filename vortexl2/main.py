@@ -9,6 +9,7 @@ import sys
 import os
 import argparse
 import subprocess
+import signal
 
 # Ensure we can import the package
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -18,6 +19,13 @@ from vortexl2.config import Config
 from vortexl2.tunnel import TunnelManager
 from vortexl2.forward import ForwardManager
 from vortexl2 import ui
+
+
+def signal_handler(sig, frame):
+    """Handle Ctrl+C gracefully."""
+    print("\n")
+    ui.console.print("[yellow]Interrupted. Goodbye![/]")
+    sys.exit(0)
 
 
 def check_root():
@@ -265,6 +273,9 @@ def main_menu():
     """Main interactive menu loop."""
     check_root()
     
+    # Set up signal handler for Ctrl+C
+    signal.signal(signal.SIGINT, signal_handler)
+    
     config = Config()
     tunnel = TunnelManager(config)
     forward = ForwardManager(config)
@@ -304,6 +315,9 @@ def main_menu():
 
 def main():
     """CLI entry point."""
+    # Set up signal handler for Ctrl+C
+    signal.signal(signal.SIGINT, signal_handler)
+    
     parser = argparse.ArgumentParser(
         description="VortexL2 - L2TPv3 Tunnel Manager",
         formatter_class=argparse.RawDescriptionHelpFormatter,
