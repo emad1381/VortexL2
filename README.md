@@ -81,7 +81,7 @@ sudo vortexl2
 # 3. Configure Current Tunnel (option 3)
 #    - Local IP: 1.2.3.4
 #    - Remote IP: 5.6.7.8
-#    - Interface IP: 10.30.30.1/24
+#    - Interface IP: 10.30.30.1/30
 #    - Remote Forward Target: 10.30.30.2
 #    - Tunnel ID: 1000
 #    - Peer Tunnel ID: 2000
@@ -99,7 +99,7 @@ sudo vortexl2
 # Same steps but with swapped values:
 #    - Local IP: 5.6.7.8
 #    - Remote IP: 1.2.3.4
-#    - Interface IP: 10.30.30.2/24
+#    - Interface IP: 10.30.30.2/30
 #    - Tunnel ID: 2000
 #    - Peer Tunnel ID: 1000
 #    - Session ID: 20
@@ -175,7 +175,7 @@ Tunnels are stored in `/etc/vortexl2/tunnels/`:
 name: tunnel1
 local_ip: "1.2.3.4"
 remote_ip: "5.6.7.8"
-interface_ip: "10.30.30.1/24"
+interface_ip: "10.30.30.1/30"
 remote_forward_ip: "10.30.30.2"
 tunnel_id: 1000
 peer_tunnel_id: 2000
@@ -292,8 +292,4 @@ MIT License
 
 ## 👤 Author
 
-VortexL2 Team - Telegram: @iliyadevsh
-
----
-
-**Version 1.1.0** - Multi-tunnel support
+Telegram: @iliyadevsh
