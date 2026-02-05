@@ -198,28 +198,31 @@ defaults
     def _reload_haproxy(self) -> bool:
         """Reload HAProxy configuration gracefully."""
         try:
-            # Use systemctl if available, otherwise direct command
+            # Try systemctl reload first
             result = subprocess.run(
                 ["systemctl", "reload", "haproxy"],
                 capture_output=True,
                 timeout=10
             )
             
-            if result.returncode != 0:
-                # Try direct reload
-                result = subprocess.run(
-                    ["haproxy", "-f", str(HAPROXY_CONFIG_FILE), "-p", "/var/run/haproxy.pid", "-sf", "$(cat /var/run/haproxy.pid 2>/dev/null)"],
-                    shell=False,
-                    capture_output=True,
-                    timeout=10
-                )
-                
-                if result.returncode != 0:
-                    logger.error(f"HAProxy reload failed: {result.stderr.decode()}")
-                    return False
+            if result.returncode == 0:
+                logger.info("HAProxy reloaded successfully")
+                return True
             
-            logger.info("HAProxy reloaded successfully")
-            return True
+            # If reload fails, try restart
+            logger.debug(f"Reload failed, trying restart: {result.stderr.decode()}")
+            result = subprocess.run(
+                ["systemctl", "restart", "haproxy"],
+                capture_output=True,
+                timeout=15
+            )
+            
+            if result.returncode == 0:
+                logger.info("HAProxy restarted successfully")
+                return True
+            
+            logger.error(f"HAProxy restart failed: {result.stderr.decode()}")
+            return False
             
         except subprocess.TimeoutExpired:
             logger.error("HAProxy reload timeout")
