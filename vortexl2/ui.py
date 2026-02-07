@@ -765,3 +765,100 @@ def show_stealth_installation_info():
 """)
     console.print()
 
+
+def show_stealth_menu() -> str:
+    """Display stealth tunnel management menu."""
+    from pathlib import Path
+    
+    role_file = Path("/etc/vortexl2/role")
+    role = role_file.read_text().strip() if role_file.exists() else "Not configured"
+    
+    menu_items = [
+        ("1", "📊 Show Status"),
+        ("2", "🔑 Add Peer Public Key"),
+        ("3", "▶️ Start WireGuard"),
+        ("4", "⏹️ Stop WireGuard"),
+        ("5", "📜 View Logs"),
+        ("6", "🔗 Test Connection"),
+        ("0", "← Back to Main Menu"),
+    ]
+    
+    table = Table(show_header=False, box=box.SIMPLE, padding=(0, 2))
+    table.add_column("Option", style="bold cyan", width=4)
+    table.add_column("Description", style="white")
+    
+    for opt, desc in menu_items:
+        table.add_row(f"[{opt}]", desc)
+    
+    console.print(Panel(
+        table, 
+        title=f"[bold white]🛡️ Stealth Tunnel - Role: {role.upper()}[/]", 
+        border_style="magenta"
+    ))
+    
+    return Prompt.ask("\n[bold cyan]Select option[/]", default="0")
+
+
+def show_stealth_status():
+    """Display current stealth tunnel status."""
+    import subprocess
+    from pathlib import Path
+    
+    console.print(Panel("[bold cyan]🛡️ Stealth Tunnel Status[/]", border_style="cyan"))
+    
+    # Role
+    role_file = Path("/etc/vortexl2/role")
+    role = role_file.read_text().strip() if role_file.exists() else "Not configured"
+    console.print(f"[bold]Role:[/] [yellow]{role.upper()}[/]")
+    
+    # Public Key
+    key_file = Path("/etc/vortexl2/keys/wg_public.key")
+    if key_file.exists():
+        pub_key = key_file.read_text().strip()
+        console.print(f"[bold]Your Public Key:[/] [green]{pub_key}[/]")
+    else:
+        console.print("[bold]Your Public Key:[/] [red]Not generated[/]")
+    
+    # WireGuard status
+    console.print("\n[bold cyan]─── WireGuard ───[/]")
+    result = subprocess.run("wg show wg0 2>&1", shell=True, capture_output=True, text=True)
+    if "interface" in result.stdout.lower():
+        console.print("[green]✓ WireGuard is RUNNING[/]")
+        # Show peer info
+        for line in result.stdout.split('\n'):
+            if 'peer' in line.lower():
+                console.print(f"  [dim]{line.strip()}[/]")
+            elif 'endpoint' in line.lower() or 'handshake' in line.lower():
+                console.print(f"  [dim]{line.strip()}[/]")
+    else:
+        console.print("[red]✗ WireGuard is STOPPED[/]")
+    
+    # wstunnel status
+    console.print("\n[bold cyan]─── wstunnel ───[/]")
+    result = subprocess.run("systemctl is-active vortexl2-wstunnel", shell=True, capture_output=True, text=True)
+    if result.stdout.strip() == "active":
+        console.print("[green]✓ wstunnel is ACTIVE[/]")
+    else:
+        console.print("[red]✗ wstunnel is INACTIVE[/]")
+    
+    console.print()
+
+
+def prompt_peer_public_key() -> str:
+    """Prompt for peer's WireGuard public key."""
+    console.print(Panel(
+        "[bold yellow]Enter the other server's public key[/]\n\n"
+        "You can get it from the other server by running:\n"
+        "[cyan]cat /etc/vortexl2/keys/wg_public.key[/]",
+        title="🔑 Add Peer Key",
+        border_style="yellow"
+    ))
+    
+    key = Prompt.ask("\n[bold cyan]Peer Public Key[/]", default="")
+    
+    if key and len(key) == 44 and key.endswith("="):
+        return key
+    elif key:
+        console.print("[red]Invalid key format. WireGuard keys are 44 characters ending with '='[/]")
+        return ""
+    return ""
