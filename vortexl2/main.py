@@ -10,6 +10,7 @@ import os
 import argparse
 import subprocess
 import signal
+from rich.panel import Panel
 
 # Ensure we can import the package
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

@@ -222,15 +222,35 @@ install_vortexl2() {
     # Clone or update repo
     if [[ -d "${VORTEXL2_DIR}" ]]; then
         cd "${VORTEXL2_DIR}"
-        git pull -q
+        log_info "Updating existing installation..."
+        timeout 60 git pull -q || log_warn "Git pull timed out, continuing with existing files"
     else
-        git clone -q https://github.com/emad1381/VortexL2.git "${VORTEXL2_DIR}"
+        log_info "Downloading VortexL2 from GitHub..."
+        
+        # Try git clone with timeout first
+        if ! timeout 120 git clone --depth 1 https://github.com/emad1381/VortexL2.git "${VORTEXL2_DIR}" 2>/dev/null; then
+            log_warn "Git clone slow/failed, trying direct download..."
+            
+            # Fallback: download as archive
+            mkdir -p "${VORTEXL2_DIR}"
+            cd "${VORTEXL2_DIR}"
+            
+            if curl -fsSL --connect-timeout 30 "https://github.com/emad1381/VortexL2/archive/refs/heads/main.tar.gz" -o /tmp/vortexl2.tar.gz; then
+                tar -xzf /tmp/vortexl2.tar.gz --strip-components=1 -C "${VORTEXL2_DIR}"
+                rm -f /tmp/vortexl2.tar.gz
+                log_info "Downloaded via archive"
+            else
+                log_error "Failed to download VortexL2. Check internet connection."
+                exit 1
+            fi
+        fi
     fi
     
     # Install Python dependencies
     cd "${VORTEXL2_DIR}"
+    log_info "Installing Python dependencies..."
     pip3 install -q -r requirements.txt 2>/dev/null || {
-        apt-get install -y python3-rich python3-yaml
+        apt-get install -y -qq python3-rich python3-yaml
     }
     
     # Create launcher script
