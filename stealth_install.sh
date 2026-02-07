@@ -155,12 +155,11 @@ install_wstunnel() {
     esac
     
     # Use latest stable version
-    WSTUNNEL_VER="10.1.0"
+    WSTUNNEL_VER="10.5.2"
     
-    # Try multiple download URLs
+    # Try multiple download URLs - correct format: wstunnel_VERSION_linux_amd64.tar.gz
     URLS=(
         "https://github.com/erebe/wstunnel/releases/download/v${WSTUNNEL_VER}/wstunnel_${WSTUNNEL_VER}_linux_${ARCH_NAME}.tar.gz"
-        "https://github.com/erebe/wstunnel/releases/latest/download/wstunnel_linux_${ARCH_NAME}.tar.gz"
     )
     
     cd /tmp
