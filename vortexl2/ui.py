@@ -156,8 +156,8 @@ def show_banner():
     
     # Developer info bar
     console.print(Panel(
-        f"[bold white]Telegram:[/] [cyan]@iliyadevsh[/]  |  [bold white]Version:[/] [red]{__version__}[/]  |  [bold white]GitHub:[/] [cyan]github.com/iliya-Developer[/]",
-        title="[bold white]VortexL2 - L2TPv3 Tunnel Manager[/]",
+        f"[bold white]Telegram:[/] [cyan]@emad1381[/]  |  [bold white]Version:[/] [red]{__version__}[/]  |  [bold white]GitHub:[/] [cyan]github.com/emad1381[/]",
+        title="[bold white]VortexL2 - Stealth Tunnel Manager[/]",
         border_style="cyan",
         box=box.ROUNDED
     ))
@@ -173,6 +173,7 @@ def show_main_menu() -> str:
         ("4", "List Tunnels"),
         ("5", "Port Forwards"),
         ("6", "View Logs"),
+        ("7", "🛡️ Stealth Tunnel"),
         ("0", "Exit"),
     ]
     

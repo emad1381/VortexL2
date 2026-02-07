@@ -425,6 +425,153 @@ def handle_logs(manager: ConfigManager):
     ui.wait_for_enter()
 
 
+def handle_stealth_menu():
+    """Handle stealth tunnel management menu."""
+    from pathlib import Path
+    
+    while True:
+        ui.show_banner()
+        choice = ui.show_stealth_menu()
+        
+        if choice == "0":
+            return
+        
+        elif choice == "1":
+            # Show stealth status
+            ui.show_stealth_status()
+            ui.wait_for_enter()
+            
+        elif choice == "2":
+            # Add peer key
+            ui.show_banner()
+            peer_key = ui.prompt_peer_public_key()
+            
+            if peer_key:
+                role_file = Path("/etc/vortexl2/role")
+                role = role_file.read_text().strip() if role_file.exists() else "unknown"
+                
+                # Read current WireGuard config
+                wg_config = Path("/etc/wireguard/wg0.conf")
+                if wg_config.exists():
+                    config_content = wg_config.read_text()
+                    
+                    # Check if Peer already exists
+                    if "[Peer]" in config_content:
+                        ui.show_warning("Peer already configured. Updating...")
+                        # Remove old peer section
+                        lines = config_content.split('\n')
+                        new_lines = []
+                        skip = False
+                        for line in lines:
+                            if line.startswith("[Peer]"):
+                                skip = True
+                            elif line.startswith("[") and skip:
+                                skip = False
+                            if not skip:
+                                new_lines.append(line)
+                        config_content = '\n'.join(new_lines)
+                    
+                    # Add new peer section
+                    psk_file = Path("/etc/vortexl2/keys/wg_preshared.key")
+                    psk = psk_file.read_text().strip() if psk_file.exists() else ""
+                    
+                    if role == "kharej":
+                        # Server: Peer is Iran client
+                        peer_section = f"""
+[Peer]
+PublicKey = {peer_key}
+AllowedIPs = 10.100.0.2/32
+PersistentKeepalive = 25
+"""
+                    else:
+                        # Client: Peer is Kharej server
+                        kharej_ip_file = Path("/etc/vortexl2/kharej_ip")
+                        kharej_ip = kharej_ip_file.read_text().strip() if kharej_ip_file.exists() else "127.0.0.1"
+                        peer_section = f"""
+[Peer]
+PublicKey = {peer_key}
+Endpoint = 127.0.0.1:51820
+AllowedIPs = 10.100.0.0/24, 10.30.30.0/24
+PersistentKeepalive = 25
+"""
+                    
+                    config_content = config_content.rstrip() + '\n' + peer_section
+                    wg_config.write_text(config_content)
+                    
+                    ui.show_success("Peer key added to WireGuard config!")
+                    ui.show_info("Starting WireGuard interface...")
+                    
+                    # Start/restart WireGuard
+                    result = subprocess.run("wg-quick up wg0 2>&1 || wg-quick down wg0 && wg-quick up wg0",
+                                          shell=True, capture_output=True, text=True)
+                    if result.returncode == 0:
+                        ui.show_success("WireGuard started!")
+                    else:
+                        ui.show_error(f"WireGuard error: {result.stderr}")
+                else:
+                    ui.show_error("WireGuard config not found. Run stealth_install.sh first.")
+                
+                ui.wait_for_enter()
+            
+        elif choice == "3":
+            # Start WireGuard
+            ui.show_banner()
+            ui.show_info("Starting WireGuard...")
+            result = subprocess.run("wg-quick up wg0", shell=True, capture_output=True, text=True)
+            if result.returncode == 0:
+                ui.show_success("WireGuard started!")
+            else:
+                ui.show_error(f"Error: {result.stderr}")
+            ui.wait_for_enter()
+            
+        elif choice == "4":
+            # Stop WireGuard
+            ui.show_banner()
+            ui.show_info("Stopping WireGuard...")
+            result = subprocess.run("wg-quick down wg0", shell=True, capture_output=True, text=True)
+            if result.returncode == 0:
+                ui.show_success("WireGuard stopped!")
+            else:
+                ui.show_error(f"Error: {result.stderr}")
+            ui.wait_for_enter()
+            
+        elif choice == "5":
+            # View logs
+            ui.show_banner()
+            for service in ["vortexl2-wstunnel"]:
+                result = subprocess.run(
+                    f"journalctl -u {service} -n 30 --no-pager",
+                    shell=True, capture_output=True, text=True)
+                ui.show_output(result.stdout or "No logs", f"Logs: {service}")
+            
+            # WireGuard status
+            result = subprocess.run("wg show", shell=True, capture_output=True, text=True)
+            ui.show_output(result.stdout or "WireGuard not running", "WireGuard Status")
+            ui.wait_for_enter()
+            
+        elif choice == "6":
+            # Test connection
+            ui.show_banner()
+            ui.show_info("Testing tunnel connectivity...")
+            
+            role_file = Path("/etc/vortexl2/role")
+            role = role_file.read_text().strip() if role_file.exists() else "unknown"
+            
+            if role == "kharej":
+                test_ip = "10.100.0.2"
+            else:
+                test_ip = "10.100.0.1"
+            
+            result = subprocess.run(f"ping -c 3 {test_ip}", shell=True, capture_output=True, text=True)
+            ui.show_output(result.stdout or result.stderr, f"Ping {test_ip}")
+            
+            if result.returncode == 0:
+                ui.show_success("Tunnel connectivity OK!")
+            else:
+                ui.show_error("Tunnel not reachable. Check WireGuard and wstunnel status.")
+            ui.wait_for_enter()
+
+
 def main_menu():
     """Main interactive menu loop."""
     check_root()
@@ -458,6 +605,8 @@ def main_menu():
                 handle_forwards_menu(manager)
             elif choice == "6":
                 handle_logs(manager)
+            elif choice == "7":
+                handle_stealth_menu()
             else:
                 ui.show_warning("Invalid option")
                 ui.wait_for_enter()

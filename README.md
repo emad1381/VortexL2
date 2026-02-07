@@ -84,7 +84,7 @@ journalctl -u vortexl2-wstunnel -f
 ## 📞 Contact
 
 - **GitHub:** [emad1381](https://github.com/emad1381)
-- **Telegram:** [@iliyadevsh](https://t.me/iliyadevsh)
+- **Telegram:** [@emad1381](https://t.me/emad1381)
 
 ---
 
