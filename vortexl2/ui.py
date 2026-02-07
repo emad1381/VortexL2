@@ -784,6 +784,7 @@ def show_stealth_menu() -> str:
         ("7", "🔐 Show My Public Key"),
         ("8", "🔄 Regenerate Keys"),
         ("9", "❌ Disable Tunnel"),
+        ("p", "🔀 Port Forwards (HAProxy)"),
         ("0", "← Back to Main Menu"),
     ]
     
