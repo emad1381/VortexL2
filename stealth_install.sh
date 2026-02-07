@@ -446,7 +446,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=${WSTUNNEL_BIN} client --local-to-remote udp://127.0.0.1:${WIREGUARD_PORT}:127.0.0.1:${WIREGUARD_PORT} wss://${KHAREJ_IP}:${WSTUNNEL_PORT} --tls-verify-certificate false
+ExecStart=${WSTUNNEL_BIN} client -L udp://127.0.0.1:${WIREGUARD_PORT}:127.0.0.1:${WIREGUARD_PORT} wss://${KHAREJ_IP}:${WSTUNNEL_PORT}
 Restart=always
 RestartSec=5
 StandardOutput=append:${LOG_DIR}/wstunnel.log
