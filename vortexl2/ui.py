@@ -629,3 +629,138 @@ def wait_for_enter():
 def confirm(message: str, default: bool = False) -> bool:
     """Ask for confirmation."""
     return Confirm.ask(message, default=default)
+
+
+# ============================================================================
+# STEALTH TUNNEL UI FUNCTIONS
+# ============================================================================
+
+def show_stealth_status():
+    """Display stealth tunnel status (WireGuard + wstunnel)."""
+    from pathlib import Path
+    
+    console.print()
+    console.print(Panel(
+        "[bold cyan]🛡️ Stealth Tunnel Status[/]",
+        border_style="cyan"
+    ))
+    
+    # Check role
+    role_file = Path("/etc/vortexl2/role")
+    role = role_file.read_text().strip() if role_file.exists() else "unknown"
+    
+    # Check wstunnel status
+    try:
+        result = subprocess.run(
+            "systemctl is-active vortexl2-wstunnel",
+            shell=True, capture_output=True, text=True, timeout=5
+        )
+        wstunnel_status = result.stdout.strip() == "active"
+    except:
+        wstunnel_status = False
+    
+    # Check WireGuard status
+    try:
+        result = subprocess.run(
+            "wg show wg0 2>/dev/null",
+            shell=True, capture_output=True, text=True, timeout=5
+        )
+        wg_status = result.returncode == 0 and result.stdout.strip()
+        wg_output = result.stdout.strip() if wg_status else ""
+    except:
+        wg_status = False
+        wg_output = ""
+    
+    # Get public key
+    key_file = Path("/etc/vortexl2/keys/wg_public.key")
+    public_key = key_file.read_text().strip() if key_file.exists() else "Not generated"
+    
+    # Display table
+    table = Table(box=box.ROUNDED, show_header=False)
+    table.add_column("Property", style="cyan")
+    table.add_column("Value", style="white")
+    
+    table.add_row("Role", f"[bold]{role.upper()}[/]")
+    table.add_row("wstunnel", "[green]✓ Running[/]" if wstunnel_status else "[red]✗ Stopped[/]")
+    table.add_row("WireGuard", "[green]✓ Connected[/]" if wg_status else "[yellow]○ Waiting[/]")
+    table.add_row("Public Key", f"[dim]{public_key[:20]}...[/]" if len(public_key) > 20 else public_key)
+    
+    console.print(table)
+    
+    # Show WireGuard details if running
+    if wg_status and wg_output:
+        console.print()
+        console.print("[bold]WireGuard Details:[/]")
+        for line in wg_output.split('\n'):
+            if 'transfer' in line.lower() or 'handshake' in line.lower():
+                console.print(f"  {line.strip()}")
+    
+    console.print()
+    return wstunnel_status, wg_status
+
+
+def prompt_peer_public_key() -> str:
+    """Prompt user to enter peer's WireGuard public key."""
+    console.print()
+    console.print("[bold cyan]🔑 Key Exchange[/]")
+    console.print("[dim]Enter the peer server's WireGuard public key[/]")
+    console.print("[dim]You can get it from the other server's installation output[/]")
+    console.print()
+    
+    while True:
+        key = Prompt.ask("[cyan]Peer Public Key[/]")
+        if key and len(key) == 44 and key.endswith('='):
+            return key
+        console.print("[red]Invalid key format. WireGuard keys are 44 characters ending with '='[/]")
+
+
+def show_stealth_menu() -> str:
+    """Display stealth tunnel management menu."""
+    console.print()
+    console.print(Panel(
+        "[bold cyan]🛡️ Stealth Tunnel Management[/]",
+        border_style="cyan"
+    ))
+    
+    menu_items = [
+        ("1", "Show Status", "View stealth tunnel status"),
+        ("2", "Add Peer Key", "Add peer's WireGuard public key"),
+        ("3", "Start WireGuard", "Start WireGuard interface"),
+        ("4", "Stop WireGuard", "Stop WireGuard interface"),
+        ("5", "View Logs", "View wstunnel and WireGuard logs"),
+        ("6", "Test Connection", "Test tunnel connectivity"),
+        ("0", "Back", "Return to main menu"),
+    ]
+    
+    for num, title, desc in menu_items:
+        console.print(f"  [{num}] [bold]{title}[/] - [dim]{desc}[/]")
+    
+    console.print()
+    choice = Prompt.ask("Select option", choices=["0", "1", "2", "3", "4", "5", "6"], default="0")
+    return choice
+
+
+def show_stealth_installation_info():
+    """Show stealth tunnel installation instructions."""
+    console.print()
+    console.print(Panel(
+        "[bold cyan]🚀 Stealth Tunnel Installation[/]",
+        border_style="cyan"
+    ))
+    
+    console.print("""
+[bold yellow]For Kharej (Foreign Server):[/]
+[green]curl -fsSL https://raw.githubusercontent.com/emad1381/VortexL2/main/stealth_install.sh | sudo bash -s -- kharej[/]
+
+[bold yellow]For Iran (Local Server):[/]
+[green]curl -fsSL https://raw.githubusercontent.com/emad1381/VortexL2/main/stealth_install.sh | sudo bash -s -- iran KHAREJ_IP[/]
+
+[bold cyan]Features:[/]
+• [green]✓[/] WireGuard encryption (fast, secure)
+• [green]✓[/] wstunnel obfuscation (looks like HTTPS)
+• [green]✓[/] Optimized MTU (1280 bytes)
+• [green]✓[/] Auto-reconnect on failure
+• [green]✓[/] PersistentKeepalive for NAT
+""")
+    console.print()
+

@@ -80,6 +80,14 @@ class TunnelConfig:
         "forwarded_ports": [],
         "encap_type": "ip",      # "ip" or "udp"
         "udp_port": 55555,       # Only used when encap_type == "udp"
+        # Stealth tunnel configuration
+        "stealth_mode": False,           # Enable stealth (WireGuard + wstunnel)
+        "wg_private_key": None,          # WireGuard private key
+        "wg_public_key": None,           # WireGuard public key
+        "wg_peer_public_key": None,      # Peer's WireGuard public key
+        "wg_preshared_key": None,        # Optional preshared key
+        "wstunnel_port": 443,            # wstunnel listen port (HTTPS stealth)
+        "wg_tunnel_ip": None,            # WireGuard tunnel IP (e.g., 10.100.0.1/24)
     }
     
     def __init__(self, name: str, config_data: Dict[str, Any] = None, auto_save: bool = True):

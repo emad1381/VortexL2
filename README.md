@@ -2,7 +2,7 @@
 
 **L2TPv3 Ethernet Tunnel Manager for Ubuntu/Debian**
 
-A modular, production-quality CLI tool for managing multiple L2TPv3 tunnels with HAProxy-based port forwarding.
+A modular, production-quality CLI tool for managing multiple L2TPv3 tunnels with HAProxy-based port forwarding and **stealth tunnel** capabilities.
 
 ```
  __      __        _            _     ___  
@@ -11,7 +11,7 @@ A modular, production-quality CLI tool for managing multiple L2TPv3 tunnels with
    \ \/ / _ \| '__| __/ _ \ \/ / |     / / 
     \  / (_) | |  | ||  __/>  <| |____/ /_ 
      \/ \___/|_|   \__\___/_/\_\______|____|
-                                    v2.0.0
+                                     v3.0.0
 ```
 
 ## ✨ Features
@@ -22,6 +22,29 @@ A modular, production-quality CLI tool for managing multiple L2TPv3 tunnels with
 - 🔄 Systemd integration for persistence
 - 📦 One-liner installation
 - 🎯 Fully configurable tunnel IDs
+- 🛡️ **NEW: Stealth Tunnel Mode**
+  - WireGuard encryption (fast & secure)
+  - wstunnel obfuscation (looks like HTTPS on port 443)
+  - Optimized MTU (1280 bytes) for reliability
+  - PersistentKeepalive for NAT traversal
+
+## 🛡️ Stealth Tunnel (NEW)
+
+For undetectable, encrypted tunnels between Iran and foreign servers:
+
+```bash
+# On Kharej (Foreign Server):
+curl -fsSL https://raw.githubusercontent.com/emad1381/VortexL2/main/stealth_install.sh | sudo bash -s -- kharej
+
+# On Iran (Local Server):
+curl -fsSL https://raw.githubusercontent.com/emad1381/VortexL2/main/stealth_install.sh | sudo bash -s -- iran KHAREJ_IP
+```
+
+**How it works:**
+```
+User Traffic → HAProxy → L2TPv3 → WireGuard → wstunnel → Internet (port 443)
+                                   (encrypted)  (looks like HTTPS)
+```
 
 ## 📦 Quick Install
 

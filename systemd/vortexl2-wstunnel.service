@@ -1,0 +1,25 @@
+[Unit]
+Description=VortexL2 wstunnel (Stealth Layer)
+Documentation=https://github.com/erebe/wstunnel
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Command set dynamically by stealth_install.sh or vortexl2 based on role
+# This is a placeholder - actual ExecStart is configured during installation
+ExecStart=/bin/true
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/log/vortexl2/wstunnel.log
+StandardError=append:/var/log/vortexl2/wstunnel.log
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+
+# Resource limits
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
