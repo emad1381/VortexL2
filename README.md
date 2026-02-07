@@ -1,8 +1,6 @@
 # VortexL2
 
-**L2TPv3 Ethernet Tunnel Manager for Ubuntu/Debian**
-
-A modular, production-quality CLI tool for managing multiple L2TPv3 tunnels with HAProxy-based port forwarding and **stealth tunnel** capabilities.
+**Stealth L2TPv3 Tunnel Manager** - تانل رمزنگاری شده و غیرقابل شناسایی
 
 ```
  __      __        _            _     ___  
@@ -14,174 +12,80 @@ A modular, production-quality CLI tool for managing multiple L2TPv3 tunnels with
                                      v3.0.0
 ```
 
+## ⚡ Quick Install
+
+**یک دستور برای همه سرورها:**
+
+```bash
+bash <(curl -Ls https://raw.githubusercontent.com/emad1381/VortexL2/main/stealth_install.sh)
+```
+
+بعد از اجرا، توی منو انتخاب کن:
+- **[1] Kharej** - سرور خارج
+- **[2] Iran** - سرور ایران
+
+---
+
 ## ✨ Features
 
-- 🔧 Interactive TUI management panel with Rich
-- 🌐 **Multiple L2TPv3 tunnels** on a single server
-- 🚀 **HAProxy port forwarding**: High performance, manual activation
-- 🔄 Systemd integration for persistence
-- 📦 One-liner installation
-- 🎯 Fully configurable tunnel IDs
-- 🛡️ **NEW: Stealth Tunnel Mode**
-  - WireGuard encryption (fast & secure)
-  - wstunnel obfuscation (looks like HTTPS on port 443)
-  - Optimized MTU (1280 bytes) for reliability
-  - PersistentKeepalive for NAT traversal
+- 🛡️ **WireGuard Encryption** - رمزنگاری قوی و سریع
+- 🌐 **wstunnel Obfuscation** - ترافیک شبیه HTTPS (پورت 443)
+- 🚀 **HAProxy Port Forwarding** - پورت فوروارد حرفه‌ای
+- 🔄 **Auto-Reconnect** - اتصال مجدد خودکار
+- 📦 **One-Line Install** - نصب با یک دستور
 
-## 🛡️ Stealth Tunnel (NEW)
+---
 
-For undetectable, encrypted tunnels between Iran and foreign servers:
+## 🔧 Architecture
+
+```
+User → HAProxy → L2TPv3 → WireGuard → wstunnel → Internet (443)
+       (forward)  (L2)    (encrypt)   (stealth)
+```
+
+---
+
+## 📋 After Installation
 
 ```bash
-# On Kharej (Foreign Server):
-curl -fsSL https://raw.githubusercontent.com/emad1381/VortexL2/main/stealth_install.sh | sudo bash -s -- kharej
-
-# On Iran (Local Server):
-curl -fsSL https://raw.githubusercontent.com/emad1381/VortexL2/main/stealth_install.sh | sudo bash -s -- iran KHAREJ_IP
-```
-
-**How it works:**
-```
-User Traffic → HAProxy → L2TPv3 → WireGuard → wstunnel → Internet (port 443)
-                                   (encrypted)  (looks like HTTPS)
-```
-
-## 📦 Quick Install
-
-```bash
-bash <(curl -Ls https://raw.githubusercontent.com/iliya-Developer/VortexL2/main/install.sh)
-```
-
-## 🚀 First Run
-
-### 1. Open the Management Panel
-
-```bash
+# مدیریت تانل
 sudo vortexl2
+
+# وضعیت سرویس‌ها
+systemctl status vortexl2-wstunnel
+systemctl status vortexl2-tunnel
+
+# لاگ‌ها
+journalctl -u vortexl2-wstunnel -f
 ```
 
-### 2. Create Tunnels
+---
 
-Each tunnel needs:
-- **Tunnel Name**: A unique identifier (e.g., `tunnel1`)
-- **Local IP**: This server's public IP
-- **Remote IP**: The other server's public IP
-- **Interface IP**: Tunnel interface IP (e.g., `10.30.30.1/30`)
-- **Tunnel IDs**: Unique IDs for the L2TP connection
+## 🔑 Key Exchange
 
-### 3. Configure Both Sides
+بعد از نصب روی هر دو سرور:
+1. Public Key سرور خارج رو کپی کن
+2. توی سرور ایران `sudo vortexl2` بزن و کلید رو وارد کن
+3. همین کار رو برعکس انجام بده
 
-| Parameter | IRAN Side | KHAREJ Side |
-|-----------|-----------|-------------|
-| Local IP | 1.2.3.4 | 5.6.7.8 |
-| Remote IP | 5.6.7.8 | 1.2.3.4 |
-| Interface IP | 10.30.30.1/30 | 10.30.30.2/30 |
-| Tunnel ID | 1000 | 2000 |
-| Peer Tunnel ID | 2000 | 1000 |
+---
 
-### 4. Enable Port Forwarding (IRAN side only)
+## ⚙️ Technical Specs
 
-1. Select "Port Forwards" in the menu
-2. **Enable HAProxy** (option 8 → select haproxy)
-3. Add ports like: `443,80,2053`
+| Setting | Value |
+|---------|-------|
+| WireGuard MTU | 1280 |
+| KeepAlive | 25s |
+| wstunnel Port | 443 (wss://) |
+| Encryption | WireGuard (ChaCha20) |
 
-> ⚠️ **Port forwarding is DISABLED by default.** You must enable HAProxy mode manually.
+---
 
-## 📋 Commands
+## 📞 Contact
 
-| Command | Description |
-|---------|-------------|
-| `sudo vortexl2` | Open management panel |
-| `sudo vortexl2 apply` | Apply all tunnels |
-| `sudo vortexl2 --version` | Show version |
+- **GitHub:** [emad1381](https://github.com/emad1381)
+- **Telegram:** [@iliyadevsh](https://t.me/iliyadevsh)
 
-## 🔧 Services
+---
 
-| Service | Description |
-|---------|-------------|
-| `vortexl2-tunnel.service` | Creates L2TP tunnels on boot |
-| `vortexl2-forward-daemon.service` | Manages HAProxy port forwarding |
-
-```bash
-# Check status
-sudo systemctl status vortexl2-tunnel
-sudo systemctl status vortexl2-forward-daemon
-
-# View logs
-journalctl -u vortexl2-forward-daemon -f
-```
-
-## 🔍 Troubleshooting
-
-### Tunnel not working
-1. Ensure matching tunnel IDs (swapped peer values)
-2. Check firewall allows IP protocol 115
-3. Verify modules: `lsmod | grep l2tp`
-
-### Port forward not working
-1. Check HAProxy mode is enabled (not `none`)
-2. Verify tunnel: `ping 10.30.30.2`
-3. Check daemon: `systemctl status vortexl2-forward-daemon`
-
-## 🔧 Configuration
-
-```yaml
-# /etc/vortexl2/config.yaml (global)
-forward_mode: haproxy  # or: none
-
-# /etc/vortexl2/tunnels/tunnel1.yaml
-name: tunnel1
-local_ip: "1.2.3.4"
-remote_ip: "5.6.7.8"
-interface_ip: "10.30.30.1/30"
-remote_forward_ip: "10.30.30.2"
-forwarded_ports:
-  - 443
-  - 80
-```
-
-## 🏗️ Architecture
-
-```
-                    ┌─────────────────┐
-                    │   IRAN Server   │
-                    │                 │
- Users ──────────►  │     HAProxy     │
- (443,80,2053)      │                 │
-                    │  ┌───────────┐  │
-                    │  │ l2tpeth0  │  │
-                    │  │10.30.30.1 │  │
-                    └────────┼────────┘
-                             │
-                      L2TPv3 Tunnel
-                             │
-                    ┌────────┼────────┐
-                    │  ┌─────▼─────┐  │
-                    │  │ l2tpeth0  │  │
-                    │  │10.30.30.2 │  │
-                    │  └───────────┘  │
-                    │  KHAREJ Server  │
-                    └─────────────────┘
-```
-
-## ⚠️ Security Notice
-
-**L2TPv3 provides NO encryption!** Consider adding IPsec or use encrypted application protocols (TLS).
-
-## 🔄 Uninstall
-
-```bash
-sudo systemctl stop vortexl2-tunnel vortexl2-forward-daemon
-sudo systemctl disable vortexl2-tunnel vortexl2-forward-daemon
-sudo rm -rf /opt/vortexl2 /etc/vortexl2 /var/lib/vortexl2 /var/log/vortexl2
-sudo rm /usr/local/bin/vortexl2 /etc/systemd/system/vortexl2-*
-sudo systemctl daemon-reload
-```
-
-## 📄 License
-
-MIT License
-
-## 👤 Author
-
-Telegram: @iliyadevsh
+**License:** MIT

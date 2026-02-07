@@ -448,13 +448,40 @@ main() {
     ROLE=${1:-}
     KHAREJ_IP=${2:-}
     
+    # Interactive menu if no role specified
     if [[ -z "$ROLE" ]]; then
         echo ""
-        echo "Usage:"
-        echo "  Kharej (Server):  $0 kharej"
-        echo "  Iran (Client):    $0 iran KHAREJ_IP"
+        echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+        echo -e "${CYAN}              SELECT SERVER ROLE${NC}"
+        echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
         echo ""
-        exit 1
+        echo -e "  ${GREEN}[1]${NC} Kharej (سرور خارج) - Foreign Server"
+        echo -e "  ${GREEN}[2]${NC} Iran (سرور ایران) - Local Server"
+        echo ""
+        echo -e "  ${RED}[0]${NC} Exit"
+        echo ""
+        echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+        echo ""
+        read -p "Select option [1/2/0]: " choice
+        
+        case "$choice" in
+            1)
+                ROLE="kharej"
+                ;;
+            2)
+                ROLE="iran"
+                echo ""
+                read -p "Enter Kharej server IP: " KHAREJ_IP
+                if [[ -z "$KHAREJ_IP" ]]; then
+                    log_error "Kharej IP is required!"
+                    exit 1
+                fi
+                ;;
+            0|*)
+                echo "Exiting..."
+                exit 0
+                ;;
+        esac
     fi
     
     check_requirements
