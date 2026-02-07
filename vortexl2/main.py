@@ -594,15 +594,17 @@ PersistentKeepalive = 25
                     wg_config.write_text(config_content)
                     
                     ui.show_success("Peer key added to WireGuard config!")
-                    ui.show_info("Starting WireGuard interface...")
+                    ui.show_info("Restarting WireGuard interface...")
                     
-                    # Start/restart WireGuard
-                    result = subprocess.run("wg-quick up wg0 2>&1 || wg-quick down wg0 && wg-quick up wg0",
-                                          shell=True, capture_output=True, text=True)
+                    # Stop first if running
+                    subprocess.run("wg-quick down wg0", shell=True, capture_output=True)
+                    
+                    # Start WireGuard
+                    result = subprocess.run("wg-quick up wg0", shell=True, capture_output=True, text=True)
                     if result.returncode == 0:
                         ui.show_success("WireGuard started!")
                     else:
-                        ui.show_error(f"WireGuard error: {result.stderr}")
+                        ui.show_error(f"WireGuard error: {result.stderr or result.stdout}")
                 else:
                     ui.show_error("WireGuard config not found. Run stealth_install.sh first.")
                 
