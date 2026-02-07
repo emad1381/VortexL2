@@ -29,7 +29,7 @@ VORTEXL2_DIR="/opt/vortexl2"
 CONFIG_DIR="/etc/vortexl2"
 KEYS_DIR="${CONFIG_DIR}/keys"
 LOG_DIR="/var/log/vortexl2"
-WSTUNNEL_VERSION="10.1.0"
+# wstunnel version is set in install_wstunnel()
 WSTUNNEL_BIN="/usr/local/bin/wstunnel"
 WSTUNNEL_PORT=443
 WIREGUARD_PORT=51820
@@ -117,6 +117,7 @@ install_dependencies() {
         wireguard-tools \
         openssl \
         curl \
+        netcat-openbsd \
         jq
     
     # Load L2TP kernel modules
@@ -340,11 +341,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=${WSTUNNEL_BIN} server \\
-    wss://0.0.0.0:${WSTUNNEL_PORT} \\
-    --tls-certificate ${CONFIG_DIR}/wstunnel/certs/server.crt \\
-    --tls-private-key ${CONFIG_DIR}/wstunnel/certs/server.key \\
-    --restrict-to 127.0.0.1:${WIREGUARD_PORT}
+ExecStart=${WSTUNNEL_BIN} server wss://0.0.0.0:${WSTUNNEL_PORT} --tls-certificate ${CONFIG_DIR}/wstunnel/certs/server.crt --tls-private-key ${CONFIG_DIR}/wstunnel/certs/server.key --restrict-to 127.0.0.1:${WIREGUARD_PORT}
 Restart=always
 RestartSec=5
 StandardOutput=append:${LOG_DIR}/wstunnel.log
@@ -429,10 +426,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=${WSTUNNEL_BIN} client \\
-    --local-to-remote udp://127.0.0.1:${WIREGUARD_PORT}:127.0.0.1:${WIREGUARD_PORT} \\
-    wss://${KHAREJ_IP}:${WSTUNNEL_PORT} \\
-    --tls-verify-certificate false
+ExecStart=${WSTUNNEL_BIN} client --local-to-remote udp://127.0.0.1:${WIREGUARD_PORT}:127.0.0.1:${WIREGUARD_PORT} wss://${KHAREJ_IP}:${WSTUNNEL_PORT} --tls-verify-certificate false
 Restart=always
 RestartSec=5
 StandardOutput=append:${LOG_DIR}/wstunnel.log
