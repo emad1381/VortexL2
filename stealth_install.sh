@@ -146,27 +146,73 @@ install_wstunnel() {
     # Detect architecture
     ARCH=$(uname -m)
     case $ARCH in
-        x86_64|amd64) ARCH_NAME="x86_64" ;;
-        aarch64|arm64) ARCH_NAME="aarch64" ;;
+        x86_64|amd64) ARCH_NAME="amd64" ;;
+        aarch64|arm64) ARCH_NAME="arm64" ;;
         *)
             log_error "Unsupported architecture: $ARCH"
             exit 1
             ;;
     esac
     
-    # Download wstunnel
-    WSTUNNEL_URL="https://github.com/erebe/wstunnel/releases/download/v${WSTUNNEL_VERSION}/wstunnel_${WSTUNNEL_VERSION}_linux_${ARCH_NAME}.tar.gz"
+    # Use latest stable version
+    WSTUNNEL_VER="10.1.0"
     
-    log_info "Downloading wstunnel from ${WSTUNNEL_URL}..."
+    # Try multiple download URLs
+    URLS=(
+        "https://github.com/erebe/wstunnel/releases/download/v${WSTUNNEL_VER}/wstunnel_${WSTUNNEL_VER}_linux_${ARCH_NAME}.tar.gz"
+        "https://github.com/erebe/wstunnel/releases/latest/download/wstunnel_linux_${ARCH_NAME}.tar.gz"
+    )
     
     cd /tmp
-    curl -sSL "${WSTUNNEL_URL}" -o wstunnel.tar.gz
+    DOWNLOAD_SUCCESS=false
+    
+    for URL in "${URLS[@]}"; do
+        log_info "Trying: ${URL}"
+        
+        # Download with proper error handling
+        if curl -fsSL "${URL}" -o wstunnel.tar.gz 2>/dev/null; then
+            # Verify it's actually a gzip file
+            if file wstunnel.tar.gz | grep -q "gzip"; then
+                DOWNLOAD_SUCCESS=true
+                break
+            else
+                log_warn "Downloaded file is not valid gzip, trying next URL..."
+                rm -f wstunnel.tar.gz
+            fi
+        else
+            log_warn "Download failed, trying next URL..."
+        fi
+    done
+    
+    if [[ "$DOWNLOAD_SUCCESS" != "true" ]]; then
+        log_error "Failed to download wstunnel from any source"
+        log_error "Please install manually: https://github.com/erebe/wstunnel/releases"
+        exit 1
+    fi
+    
+    # Extract
     tar -xzf wstunnel.tar.gz
-    mv wstunnel "${WSTUNNEL_BIN}"
+    
+    # Find and move binary
+    if [[ -f "wstunnel" ]]; then
+        mv wstunnel "${WSTUNNEL_BIN}"
+    elif [[ -f "wstunnel-linux-${ARCH_NAME}" ]]; then
+        mv "wstunnel-linux-${ARCH_NAME}" "${WSTUNNEL_BIN}"
+    else
+        # Search for any wstunnel binary
+        FOUND_BIN=$(find . -name "wstunnel*" -type f -executable 2>/dev/null | head -1)
+        if [[ -n "$FOUND_BIN" ]]; then
+            mv "$FOUND_BIN" "${WSTUNNEL_BIN}"
+        else
+            log_error "Could not find wstunnel binary in archive"
+            exit 1
+        fi
+    fi
+    
     chmod +x "${WSTUNNEL_BIN}"
     rm -f wstunnel.tar.gz
     
-    log_info "wstunnel ${WSTUNNEL_VERSION} installed"
+    log_info "wstunnel installed successfully"
 }
 
 # Install VortexL2 Python package
