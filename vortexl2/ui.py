@@ -174,6 +174,7 @@ def show_main_menu() -> str:
         ("5", "Port Forwards"),
         ("6", "View Logs"),
         ("7", "🛡️ Stealth Tunnel"),
+        ("8", "🗑️ Uninstall VortexL2"),
         ("0", "Exit"),
     ]
     
@@ -780,6 +781,9 @@ def show_stealth_menu() -> str:
         ("4", "⏹️ Stop WireGuard"),
         ("5", "📜 View Logs"),
         ("6", "🔗 Test Connection"),
+        ("7", "🔐 Show My Public Key"),
+        ("8", "🔄 Regenerate Keys"),
+        ("9", "❌ Disable Tunnel"),
         ("0", "← Back to Main Menu"),
     ]
     

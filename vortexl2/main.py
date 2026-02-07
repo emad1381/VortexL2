@@ -425,6 +425,100 @@ def handle_logs(manager: ConfigManager):
     ui.wait_for_enter()
 
 
+def handle_uninstall():
+    """Complete uninstall of VortexL2 and all its components."""
+    ui.show_banner()
+    
+    ui.console.print(Panel(
+        "[bold red]⚠️ WARNING: Complete Uninstall[/]\n\n"
+        "This will remove:\n"
+        "• All VortexL2 files and scripts\n"
+        "• All tunnel configurations\n"
+        "• All WireGuard configs and keys\n"
+        "• All systemd services\n"
+        "• All logs and data\n\n"
+        "[yellow]This action cannot be undone![/]",
+        title="🗑️ Uninstall VortexL2",
+        border_style="red"
+    ))
+    
+    if not ui.confirm("\n⚠️ Are you SURE you want to completely remove VortexL2?", default=False):
+        ui.show_info("Uninstall cancelled.")
+        ui.wait_for_enter()
+        return
+    
+    # Double confirm
+    if not ui.confirm("🔴 FINAL WARNING: Type 'y' to confirm complete removal", default=False):
+        ui.show_info("Uninstall cancelled.")
+        ui.wait_for_enter()
+        return
+    
+    ui.show_info("Starting complete uninstall...")
+    
+    # 1. Stop all services
+    ui.show_info("[1/7] Stopping services...")
+    services = [
+        "vortexl2-tunnel",
+        "vortexl2-forward-daemon",
+        "vortexl2-wstunnel",
+        "wg-quick@wg0",
+    ]
+    for service in services:
+        subprocess.run(f"systemctl stop {service}", shell=True, capture_output=True)
+        subprocess.run(f"systemctl disable {service}", shell=True, capture_output=True)
+    
+    # Stop WireGuard
+    subprocess.run("wg-quick down wg0", shell=True, capture_output=True)
+    
+    # 2. Remove systemd service files
+    ui.show_info("[2/7] Removing systemd services...")
+    service_files = [
+        "/etc/systemd/system/vortexl2-tunnel.service",
+        "/etc/systemd/system/vortexl2-forward-daemon.service",
+        "/etc/systemd/system/vortexl2-wstunnel.service",
+    ]
+    for f in service_files:
+        subprocess.run(f"rm -f {f}", shell=True, capture_output=True)
+    subprocess.run("systemctl daemon-reload", shell=True, capture_output=True)
+    
+    # 3. Remove WireGuard configs
+    ui.show_info("[3/7] Removing WireGuard configs...")
+    subprocess.run("rm -f /etc/wireguard/wg0.conf", shell=True, capture_output=True)
+    
+    # 4. Remove VortexL2 directories
+    ui.show_info("[4/7] Removing VortexL2 files...")
+    dirs_to_remove = [
+        "/opt/vortexl2",
+        "/etc/vortexl2",
+        "/var/log/vortexl2",
+        "/var/lib/vortexl2",
+    ]
+    for d in dirs_to_remove:
+        subprocess.run(f"rm -rf {d}", shell=True, capture_output=True)
+    
+    # 5. Remove launcher script
+    ui.show_info("[5/7] Removing launcher...")
+    subprocess.run("rm -f /usr/local/bin/vortexl2", shell=True, capture_output=True)
+    
+    # 6. Remove wstunnel binary
+    ui.show_info("[6/7] Removing wstunnel...")
+    subprocess.run("rm -f /usr/local/bin/wstunnel", shell=True, capture_output=True)
+    
+    # 7. Remove kernel module configs
+    ui.show_info("[7/7] Cleaning up system configs...")
+    subprocess.run("rm -f /etc/modules-load.d/vortexl2.conf", shell=True, capture_output=True)
+    
+    ui.console.print()
+    ui.show_success("✅ VortexL2 has been completely removed!")
+    ui.console.print("\n[dim]Thank you for using VortexL2![/]")
+    ui.console.print("[dim]GitHub: github.com/emad1381/VortexL2[/]")
+    ui.wait_for_enter()
+    
+    # Exit the program
+    ui.console.print("\n[bold green]Goodbye![/]\n")
+    sys.exit(0)
+
+
 def handle_stealth_menu():
     """Handle stealth tunnel management menu."""
     from pathlib import Path
@@ -570,6 +664,71 @@ PersistentKeepalive = 25
             else:
                 ui.show_error("Tunnel not reachable. Check WireGuard and wstunnel status.")
             ui.wait_for_enter()
+            
+        elif choice == "7":
+            # Show my public key
+            ui.show_banner()
+            key_file = Path("/etc/vortexl2/keys/wg_public.key")
+            if key_file.exists():
+                pub_key = key_file.read_text().strip()
+                ui.console.print(Panel(
+                    f"[bold green]{pub_key}[/]",
+                    title="🔐 Your Public Key",
+                    border_style="green"
+                ))
+                ui.console.print("\n[dim]Copy this key and paste it on the other server.[/]")
+            else:
+                ui.show_error("Keys not generated. Run stealth_install.sh first.")
+            ui.wait_for_enter()
+            
+        elif choice == "8":
+            # Regenerate keys
+            ui.show_banner()
+            if ui.confirm("⚠️ This will generate NEW keys. The other server will need your NEW key. Continue?", default=False):
+                ui.show_info("Stopping WireGuard...")
+                subprocess.run("wg-quick down wg0", shell=True, capture_output=True)
+                
+                ui.show_info("Generating new WireGuard keys...")
+                result = subprocess.run("wg genkey", shell=True, capture_output=True, text=True)
+                private_key = result.stdout.strip()
+                
+                result = subprocess.run(f"echo '{private_key}' | wg pubkey", shell=True, capture_output=True, text=True)
+                public_key = result.stdout.strip()
+                
+                # Save keys
+                keys_dir = Path("/etc/vortexl2/keys")
+                keys_dir.mkdir(parents=True, exist_ok=True)
+                (keys_dir / "wg_private.key").write_text(private_key)
+                (keys_dir / "wg_public.key").write_text(public_key)
+                
+                # Update WireGuard config
+                wg_config = Path("/etc/wireguard/wg0.conf")
+                if wg_config.exists():
+                    config = wg_config.read_text()
+                    import re
+                    config = re.sub(r'PrivateKey = .+', f'PrivateKey = {private_key}', config)
+                    wg_config.write_text(config)
+                
+                ui.show_success("New keys generated!")
+                ui.console.print(f"\n[bold]New Public Key:[/] [green]{public_key}[/]")
+                ui.console.print("\n[yellow]⚠️ Share this new key with the other server![/]")
+            ui.wait_for_enter()
+            
+        elif choice == "9":
+            # Disable tunnel
+            ui.show_banner()
+            if ui.confirm("❌ Disable stealth tunnel completely?", default=False):
+                ui.show_info("Stopping WireGuard...")
+                subprocess.run("wg-quick down wg0", shell=True, capture_output=True)
+                subprocess.run("systemctl disable wg-quick@wg0", shell=True, capture_output=True)
+                
+                ui.show_info("Stopping wstunnel...")
+                subprocess.run("systemctl stop vortexl2-wstunnel", shell=True, capture_output=True)
+                subprocess.run("systemctl disable vortexl2-wstunnel", shell=True, capture_output=True)
+                
+                ui.show_success("Stealth tunnel disabled!")
+                ui.console.print("\n[dim]To re-enable, use options [3] Start WireGuard[/]")
+            ui.wait_for_enter()
 
 
 def main_menu():
@@ -607,6 +766,8 @@ def main_menu():
                 handle_logs(manager)
             elif choice == "7":
                 handle_stealth_menu()
+            elif choice == "8":
+                handle_uninstall()
             else:
                 ui.show_warning("Invalid option")
                 ui.wait_for_enter()
